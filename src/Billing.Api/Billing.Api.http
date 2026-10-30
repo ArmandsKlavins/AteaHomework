@@ -1,0 +1,14 @@
+@Billing.Api_HostAddress = http://localhost:5209
+
+POST {{Billing.Api_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "orderNumber": "ORD-1",
+  "userId": "user-1",
+  "payableAmount": 10.50,
+  "paymentGatewayId": "gateway-a",
+  "description": "Test order"
+}
+
+###
