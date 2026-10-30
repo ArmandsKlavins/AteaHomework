@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Billing.Api.Models;
+namespace Billing.Logic.Models;
 
 public record Order
 {

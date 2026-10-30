@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Billing.Api/Billing.Api.csproj" />
+    <Project Path="src/Billing.Logic/Billing.Logic.csproj" />
   </Folder>
 </Solution>

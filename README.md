@@ -15,9 +15,14 @@ Billing.slnx
 src/
   Billing.Api/
     Controllers/OrdersController.cs   # POST /api/orders
+    Program.cs                        # DI registrations
+  Billing.Logic/                      # business logic, no ASP.NET dependency
     Models/Order.cs                   # order payload + validation rules
-    Program.cs
+    Services/OrderService.cs          # order processing
+    Repositories/InMemoryOrderRepository.cs
 ```
+
+Orders are stored in memory, keyed by order number, and are lost when the API restarts.
 
 ## Prerequisites
 
@@ -61,5 +66,6 @@ Responses:
 
 - `200 OK`: the submitted order (placeholder until payment processing is implemented)
 - `400 Bad Request`: validation errors as [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457)
+- `409 Conflict`: an order with the same `orderNumber` has already been processed
 
 You can also send the sample request in `src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).
