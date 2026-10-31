@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- XML docs feed the OpenAPI document: only endpoints need them, and CancellationToken params stay undocumented because the generator shows their text as the request body description -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
@@ -12,6 +15,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Billing.Logic\Billing.Logic.csproj" />
+    <ProjectReference Include="..\Billing.Data\Billing.Data.csproj" />
+    <ProjectReference Include="..\Billing.Domain\Billing.Domain.csproj" />
+    <ProjectReference Include="..\Billing.Contracts\Billing.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

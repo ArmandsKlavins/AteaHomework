@@ -1,4 +1,4 @@
-using Billing.Logic.Repositories;
+using Billing.Data.Repositories;
 using Billing.Logic.Services;
 
 var builder = WebApplication.CreateBuilder(args);

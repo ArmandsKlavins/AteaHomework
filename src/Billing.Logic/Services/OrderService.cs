@@ -1,5 +1,5 @@
-using Billing.Logic.Models;
-using Billing.Logic.Repositories;
+using Billing.Data.Repositories;
+using Billing.Domain;
 
 namespace Billing.Logic.Services;
 

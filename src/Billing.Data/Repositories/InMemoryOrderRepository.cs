@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using Billing.Logic.Models;
+using Billing.Domain;
 
-namespace Billing.Logic.Repositories;
+namespace Billing.Data.Repositories;
 
 /// <summary>
 /// Stores orders in memory, keyed by order number.
