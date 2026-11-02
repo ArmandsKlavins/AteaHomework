@@ -11,14 +11,15 @@ public class InMemoryOrderRepository : IOrderRepository
 {
     private readonly ConcurrentDictionary<string, Order> _orders = new();
 
-    public async Task<bool> TryAddAsync(Order order, CancellationToken cancellationToken)
+    public Task<bool> TryAddAsync(Order order, CancellationToken cancellationToken)
     {
         // TryAdd is atomic, so concurrent submits of the same order number can't both succeed
-        return await Task.FromResult(_orders.TryAdd(order.OrderNumber, order));
+        return Task.FromResult(_orders.TryAdd(order.OrderNumber, order));
     }
 
-    public async Task RemoveAsync(Order order, CancellationToken cancellationToken)
+    public Task RemoveAsync(Order order, CancellationToken cancellationToken)
     {
-        await Task.FromResult(_orders.TryRemove(order.OrderNumber, out _));
+        _orders.TryRemove(order.OrderNumber, out _);
+        return Task.CompletedTask;
     }
 }

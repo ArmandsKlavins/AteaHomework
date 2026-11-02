@@ -5,7 +5,6 @@ import { OrderRequest } from '../models/order-request';
 import { PaymentGateway } from '../models/payment-gateway';
 import { Receipt } from '../models/receipt';
 
-// shortcut: hardcoded API URL, move it to configuration when the API runs anywhere but localhost:5209
 export const apiUrl = 'http://localhost:5209/api';
 
 @Injectable({ providedIn: 'root' })

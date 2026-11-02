@@ -11,13 +11,14 @@ public class InMemoryReceiptRepository : IReceiptRepository
 {
     private readonly ConcurrentDictionary<string, Receipt> _receipts = new();
 
-    public async Task AddAsync(Receipt receipt, CancellationToken cancellationToken)
+    public Task AddAsync(Receipt receipt, CancellationToken cancellationToken)
     {
-        await Task.FromResult(_receipts.TryAdd(receipt.OrderNumber, receipt));
+        _receipts.TryAdd(receipt.OrderNumber, receipt);
+        return Task.CompletedTask;
     }
 
-    public async Task<Receipt?> GetAsync(string orderNumber, CancellationToken cancellationToken)
+    public Task<Receipt?> GetAsync(string orderNumber, CancellationToken cancellationToken)
     {
-        return await Task.FromResult(_receipts.GetValueOrDefault(orderNumber));
+        return Task.FromResult(_receipts.GetValueOrDefault(orderNumber));
     }
 }

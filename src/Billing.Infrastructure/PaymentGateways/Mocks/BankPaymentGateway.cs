@@ -12,13 +12,13 @@ public class BankPaymentGateway : IPaymentGateway
 
     public string Id { get; } = "bank";
 
-    public async Task<PaymentResult> ChargeAsync(Order order, CancellationToken cancellationToken)
+    public Task<PaymentResult> ChargeAsync(Order order, CancellationToken cancellationToken)
     {
         if (order.PayableAmount > MaxAmount)
         {
-            return await Task.FromResult(new PaymentResult { IsApproved = false, DeclineReason = $"Bank payments are limited to {MaxAmount}." });
+            return Task.FromResult(new PaymentResult { IsApproved = false, DeclineReason = $"Bank payments are limited to {MaxAmount}." });
         }
 
-        return await Task.FromResult(new PaymentResult { IsApproved = true, TransactionId = $"bank_{Guid.NewGuid():N}" });
+        return Task.FromResult(new PaymentResult { IsApproved = true, TransactionId = $"bank_{Guid.NewGuid():N}" });
     }
 }

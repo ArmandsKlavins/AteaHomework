@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Billing.Contracts.Orders;
 using Billing.Contracts.Receipts;
 using Billing.Logic.Models;
@@ -47,8 +48,10 @@ public class OrdersController : ControllerBase
             case OrderResultStatus.Declined:
                 return Problem(statusCode: StatusCodes.Status402PaymentRequired, title: "Payment declined",
                     detail: result.DeclineReason);
-            default:
+            case OrderResultStatus.Processed:
                 return CreatedAtAction(nameof(GetReceipt), new { orderNumber = request.OrderNumber }, result.Receipt);
+            default:
+                throw new UnreachableException($"Unhandled order result status {result.Status}.");
         }
     }
 
