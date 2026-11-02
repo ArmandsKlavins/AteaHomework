@@ -1,0 +1,65 @@
+<main>
+  <h1>Pay an order</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label for="orderNumber">Order number</label>
+    <div class="with-action">
+      <input id="orderNumber" formControlName="orderNumber" autocomplete="off" [attr.aria-invalid]="invalid('orderNumber')" />
+      <button type="button" class="secondary" (click)="generateOrderNumber()">New number</button>
+    </div>
+    @if (invalid('orderNumber')) {
+      <p class="field-error">Required: up to 50 letters, digits, '-' or '_'.</p>
+    }
+
+    <label for="userId">User ID</label>
+    <input id="userId" formControlName="userId" autocomplete="off" [attr.aria-invalid]="invalid('userId')" />
+    @if (invalid('userId')) {
+      <p class="field-error">Required: up to 100 characters.</p>
+    }
+
+    <label for="payableAmount">Amount</label>
+    <input id="payableAmount" type="number" min="0.01" step="0.01" formControlName="payableAmount" [attr.aria-invalid]="invalid('payableAmount')" />
+    @if (invalid('payableAmount')) {
+      <p class="field-error">Required: at least 0.01, with up to 2 decimal places.</p>
+    }
+
+    <label for="paymentGatewayId">Payment method</label>
+    <select id="paymentGatewayId" formControlName="paymentGatewayId" [attr.aria-invalid]="invalid('paymentGatewayId')">
+      <option value="" disabled>Choose a payment method</option>
+      @for (gateway of gateways(); track gateway.id) {
+        <option [value]="gateway.id">{{ gateway.name }}</option>
+      }
+    </select>
+    @if (invalid('paymentGatewayId')) {
+      <p class="field-error">Choose a payment method.</p>
+    }
+
+    <label for="description">Description <span class="optional">(optional)</span></label>
+    <textarea id="description" formControlName="description" rows="3" [attr.aria-invalid]="invalid('description')"></textarea>
+    @if (invalid('description')) {
+      <p class="field-error">Up to 500 characters.</p>
+    }
+
+    <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Paying…' : 'Pay' }}</button>
+  </form>
+
+  @if (error(); as error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+
+  @if (receipt(); as receipt) {
+    <section class="receipt" aria-live="polite">
+      <h2>Payment received</h2>
+      <dl>
+        <dt>Order number</dt>
+        <dd>{{ receipt.orderNumber }}</dd>
+        <dt>Amount</dt>
+        <dd>{{ receipt.amount | number: '1.2-2' }}</dd>
+        <dt>Paid at</dt>
+        <dd>{{ receipt.paidAt | date: 'medium' }}</dd>
+        <dt>Transaction ID</dt>
+        <dd>{{ receipt.transactionId }}</dd>
+      </dl>
+    </section>
+  }
+</main>

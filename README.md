@@ -2,12 +2,11 @@
 
 A billing application that accepts orders over a REST API and processes them through mocked payment gateways.
 
-> Work in progress: only the backend exists so far.
-
 ## Tech stack
 
 - Backend: ASP.NET Core Web API (.NET 10, controllers)
-- Tests: xUnit, Moq, `FakeTimeProvider`
+- Frontend: Angular 22 (standalone components, signals, reactive forms)
+- Tests: xUnit, Moq, `FakeTimeProvider`, `WebApplicationFactory`
 
 ## Project structure
 
@@ -47,6 +46,10 @@ src/
 tests/
   Billing.UnitTests/                  # mirrors src: Logic/, Infrastructure/, Contracts/
   Billing.IntegrationTests/           # the whole API over HTTP, in memory (WebApplicationFactory)
+frontend/                             # Angular app
+  src/app/services/billing-api.ts     # API calls (API URL: http://localhost:5209/api)
+  src/app/models/                     # API types, one per file: OrderRequest, Receipt, PaymentGateway, ProblemDetails
+  src/app/app.ts, app.html, app.css   # order form, receipt and error display
 ```
 
 Classic N-layer, not Clean Architecture: Logic depends on Infrastructure, and Infrastructure holds the interfaces and their implementations. Project references: `Api → Logic → Infrastructure → Domain`. Api also references Contracts and Infrastructure (to register the repository and gateways in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
@@ -73,6 +76,7 @@ Every order outcome is logged (structured, with the order number and gateway as 
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Node.js](https://nodejs.org/) 22 or later (tested with 24), with npm
 
 ## Running the backend
 
@@ -86,6 +90,20 @@ No configuration or environment variables are required. The one setting is `Cors
 
 The API doesn't redirect HTTP to HTTPS, because browsers reject redirected CORS preflight requests. Use the `https` launch profile, or put the API behind a proxy that terminates HTTPS, when HTTPS is needed.
 
+## Running the frontend
+
+With the backend running, in a second terminal:
+
+```bash
+cd frontend
+```
+
+```bash
+npm install && npm start
+```
+
+Open `http://localhost:4200`. The page lists the payment gateways from the API, fills in a random order number (like `ORD-3F2B9C1A`) with the "New number" button, validates the order with the same rules as the API before sending it (fields are marked when invalid), and shows the receipt, or the API's error message (for example a declined payment or an order number that was already paid).
+
 ## Running the tests
 
 ```bash
@@ -95,7 +113,6 @@ dotnet test Billing.slnx
 The unit tests cover order processing (every outcome, including that an unknown gateway doesn't use up the order number and a declined order can be retried), receipts, gateway lookup and the mock gateways, the repositories (including concurrent submits of one order number), and request validation.
 
 The integration tests run the real API in memory and call it over HTTP: every `POST /api/orders` outcome with its status code and ProblemDetails body, fetching the receipt from the `Location` header, a declined order retried on another gateway, a gateway that throws (`500` without internal details, then `409` on retry), the gateway list, and ProblemDetails for unknown routes. They need no running server or configuration.
-
 ## API
 
 Every error response is a [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457) object (`application/problem+json`) with `status`, `title`, an optional `detail` and a `traceId` that matches the server logs. That includes errors outside the endpoints below, such as unknown routes (`404`), wrong methods (`405`) and unexpected server errors (`500`, without internal details outside Development).
