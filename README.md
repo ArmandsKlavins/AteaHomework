@@ -67,6 +67,8 @@ Gateway IDs are a public contract: clients send them as `paymentGatewayId` and u
 
 The service resolves the gateway first (an unknown ID doesn't use up the order number), then stores the order (which claims the order number atomically), then charges it. A declined order is removed again, so the same order number can be retried; an approved one returns `409` on any resubmit. Once started, the charge runs to the end even if the client disconnects. If the charge fails with an error (for example a gateway timeout), the payment may or may not have gone through: the request returns `500`, the failure is logged with the order number and gateway, and the order number stays blocked (`409` on retry) until it's checked with the gateway by hand. This never charges twice.
 
+Every order outcome is logged (structured, with the order number and gateway as fields) to the console: `Information` for charging, paid (with the transaction ID) and declined orders, `Warning` for unknown gateways and duplicates, and `Error` for failed charges.
+
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
