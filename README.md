@@ -11,41 +11,42 @@ A billing application that accepts orders over a REST API and processes them thr
 ## Project structure
 
 ```
-Billing.slnx
-src/
-  Billing.Api/
-    Controllers/OrdersController.cs   # POST /api/orders, GET /api/orders/{orderNumber}/receipt
-    Controllers/PaymentGatewaysController.cs  # GET /api/payment-gateways
-    Program.cs                        # DI registrations
-  Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
-    Orders/OrderRequest.cs            # order payload + validation rules
-    Validation/MaxDecimalPlacesAttribute.cs  # e.g. at most 2 decimals for money
-    Receipts/ReceiptResponse.cs       # returned for a paid order
-    PaymentGateways/PaymentGatewayResponse.cs  # an available gateway (ID only)
-  Billing.Logic/                      # business logic, no ASP.NET dependency
-    Mappings/OrderMappings.cs         # request DTO → domain
-    Mappings/ReceiptMappings.cs       # domain → response DTO
-    Mappings/PaymentGatewayMappings.cs  # gateway → response DTO
-    Services/OrderService.cs          # order processing: resolve gateway, store, charge
-    Services/ReceiptService.cs        # receipt creation and lookup
-    Services/PaymentGatewayService.cs # lists available gateways
-    Models/OrderResult.cs             # outcome: Processed / Duplicate / UnknownGateway / Declined
-  Billing.Infrastructure/             # implementations that talk to the outside world (storage, payment providers)
-    Repositories/IOrderRepository.cs
-    Repositories/InMemoryOrderRepository.cs
-    Repositories/IReceiptRepository.cs
-    Repositories/InMemoryReceiptRepository.cs
-    PaymentGateways/IPaymentGateway.cs
-    PaymentGateways/PaymentGatewayResolver.cs  # finds a gateway by ID
-    PaymentGateways/Models/PaymentResult.cs    # approved with transaction ID, or declined with a reason
-    PaymentGateways/Mocks/CardPaymentGateway.cs
-    PaymentGateways/Mocks/BankPaymentGateway.cs
-  Billing.Domain/                     # domain models used by logic and storage
-    Order.cs
-    Receipt.cs                        # linked to its order by OrderNumber
-tests/
-  Billing.UnitTests/                  # mirrors src: Logic/, Infrastructure/, Contracts/
-  Billing.IntegrationTests/           # the whole API over HTTP, in memory (WebApplicationFactory)
+backend/
+  Billing.slnx
+  src/
+    Billing.Api/
+      Controllers/OrdersController.cs   # POST /api/orders, GET /api/orders/{orderNumber}/receipt
+      Controllers/PaymentGatewaysController.cs  # GET /api/payment-gateways
+      Program.cs                        # DI registrations
+    Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
+      Orders/OrderRequest.cs            # order payload + validation rules
+      Validation/MaxDecimalPlacesAttribute.cs  # e.g. at most 2 decimals for money
+      Receipts/ReceiptResponse.cs       # returned for a paid order
+      PaymentGateways/PaymentGatewayResponse.cs  # an available gateway (ID only)
+    Billing.Logic/                      # business logic, no ASP.NET dependency
+      Mappings/OrderMappings.cs         # request DTO → domain
+      Mappings/ReceiptMappings.cs       # domain → response DTO
+      Mappings/PaymentGatewayMappings.cs  # gateway → response DTO
+      Services/OrderService.cs          # order processing: resolve gateway, store, charge
+      Services/ReceiptService.cs        # receipt creation and lookup
+      Services/PaymentGatewayService.cs # lists available gateways
+      Models/OrderResult.cs             # outcome: Processed / Duplicate / UnknownGateway / Declined
+    Billing.Infrastructure/             # implementations that talk to the outside world (storage, payment providers)
+      Repositories/IOrderRepository.cs
+      Repositories/InMemoryOrderRepository.cs
+      Repositories/IReceiptRepository.cs
+      Repositories/InMemoryReceiptRepository.cs
+      PaymentGateways/IPaymentGateway.cs
+      PaymentGateways/PaymentGatewayResolver.cs  # finds a gateway by ID
+      PaymentGateways/Models/PaymentResult.cs    # approved with transaction ID, or declined with a reason
+      PaymentGateways/Mocks/CardPaymentGateway.cs
+      PaymentGateways/Mocks/BankPaymentGateway.cs
+    Billing.Domain/                     # domain models used by logic and storage
+      Order.cs
+      Receipt.cs                        # linked to its order by OrderNumber
+  tests/
+    Billing.UnitTests/                  # mirrors src: Logic/, Infrastructure/, Contracts/
+    Billing.IntegrationTests/           # the whole API over HTTP, in memory (WebApplicationFactory)
 frontend/                             # Angular app
   src/app/services/billing-api.ts     # API calls (API URL: http://localhost:5209/api)
   src/app/models/                     # API types, one per file: OrderRequest, Receipt, PaymentGateway, ProblemDetails
@@ -87,7 +88,7 @@ With real gateways, retries become safe once each charge sends the order number 
 ## Running the backend
 
 ```bash
-dotnet run --project src/Billing.Api --launch-profile http
+dotnet run --project backend/src/Billing.Api --launch-profile http
 ```
 
 The API listens on `http://localhost:5209`. In Development, the OpenAPI document is served at `http://localhost:5209/openapi/v1.json` and Swagger UI at `http://localhost:5209/swagger`.
@@ -113,7 +114,7 @@ Open `http://localhost:4200`. The page lists the payment gateways from the API, 
 ## Running the tests
 
 ```bash
-dotnet test Billing.slnx
+dotnet test backend/Billing.slnx
 ```
 
 The unit tests cover order processing (every outcome, including that an unknown gateway doesn't use up the order number and a declined order can be retried), receipts, gateway lookup and the mock gateways, the repositories (including concurrent submits of one order number), and request validation.
@@ -183,4 +184,4 @@ Lists the gateways an order can be paid through, in no particular order (clients
 
 Only IDs are returned; the frontend decides how to name each gateway in each language it supports, and can fall back to the ID for one it has no translation for.
 
-You can also send the sample requests in `src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).
+You can also send the sample requests in `backend/src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).
