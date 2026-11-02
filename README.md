@@ -46,6 +46,7 @@ src/
     Receipt.cs                        # linked to its order by OrderNumber
 tests/
   Billing.UnitTests/                  # mirrors src: Logic/, Infrastructure/, Contracts/
+  Billing.IntegrationTests/           # the whole API over HTTP, in memory (WebApplicationFactory)
 ```
 
 Classic N-layer, not Clean Architecture: Logic depends on Infrastructure, and Infrastructure holds the interfaces and their implementations. Project references: `Api → Logic → Infrastructure → Domain`. Api also references Contracts and Infrastructure (to register the repository and gateways in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
@@ -90,6 +91,8 @@ dotnet test Billing.slnx
 ```
 
 The unit tests cover order processing (every outcome, including that an unknown gateway doesn't use up the order number and a declined order can be retried), receipts, gateway lookup and the mock gateways, the repositories (including concurrent submits of one order number), and request validation.
+
+The integration tests run the real API in memory and call it over HTTP: every `POST /api/orders` outcome with its status code and ProblemDetails body, fetching the receipt from the `Location` header, a declined order retried on another gateway, a gateway that throws (`500` without internal details, then `409` on retry), the gateway list, and ProblemDetails for unknown routes. They need no running server or configuration.
 
 ## API
 
