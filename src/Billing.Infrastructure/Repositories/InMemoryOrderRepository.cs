@@ -16,4 +16,9 @@ public class InMemoryOrderRepository : IOrderRepository
         // TryAdd is atomic, so concurrent submits of the same order number can't both succeed
         return await Task.FromResult(_orders.TryAdd(order.OrderNumber, order));
     }
+
+    public async Task RemoveAsync(Order order, CancellationToken cancellationToken)
+    {
+        await Task.FromResult(_orders.TryRemove(order.OrderNumber, out _));
+    }
 }

@@ -1,3 +1,5 @@
+using Billing.Infrastructure.PaymentGateways;
+using Billing.Infrastructure.PaymentGateways.Mocks;
 using Billing.Infrastructure.Repositories;
 using Billing.Logic.Services;
 
@@ -7,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
+builder.Services.AddSingleton<IPaymentGateway, CardPaymentGateway>();
+builder.Services.AddSingleton<IPaymentGateway, BankPaymentGateway>();
+builder.Services.AddSingleton<IPaymentGatewayResolver, PaymentGatewayResolver>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
