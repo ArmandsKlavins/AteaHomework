@@ -15,11 +15,11 @@ Billing.slnx
 src/
   Billing.Api/
     Controllers/OrdersController.cs   # POST /api/orders
-    Mappings/OrderMappings.cs         # DTO → domain mapping
     Program.cs                        # DI registrations
   Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
     Orders/OrderRequest.cs            # order payload + validation rules
   Billing.Logic/                      # business logic, no ASP.NET dependency
+    Mappings/OrderMappings.cs         # DTO → domain mapping
     Services/OrderService.cs          # order processing
   Billing.Data/                       # data access
     Repositories/IOrderRepository.cs
@@ -28,7 +28,7 @@ src/
     Order.cs
 ```
 
-Project references: `Api → Logic → Data → Domain`. Api also references Contracts, Data (to register the repository in DI) and Domain, and Logic references Domain directly. Only Api knows about Contracts; it maps requests to domain models before calling the logic layer.
+Project references: `Api → Logic → Data → Domain`. Api also references Contracts and Data (to register the repository in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
 
 Orders are stored in memory, keyed by order number, and are lost when the API restarts.
 

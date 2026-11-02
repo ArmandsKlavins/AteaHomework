@@ -1,7 +1,7 @@
 using Billing.Contracts.Orders;
 using Billing.Domain;
 
-namespace Billing.Api.Mappings;
+namespace Billing.Logic.Mappings;
 
 public static class OrderMappings
 {

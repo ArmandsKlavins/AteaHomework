@@ -1,5 +1,6 @@
+using Billing.Contracts.Orders;
 using Billing.Data.Repositories;
-using Billing.Domain;
+using Billing.Logic.Mappings;
 
 namespace Billing.Logic.Services;
 
@@ -12,8 +13,8 @@ public class OrderService : IOrderService
         _orderRepository = orderRepository;
     }
 
-    public async Task<bool> ProcessOrderAsync(Order order, CancellationToken cancellationToken)
+    public async Task<bool> ProcessOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        return await _orderRepository.TryAddAsync(order, cancellationToken);
+        return await _orderRepository.TryAddAsync(request.ToDomain(), cancellationToken);
     }
 }

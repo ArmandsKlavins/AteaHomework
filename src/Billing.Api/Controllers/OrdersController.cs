@@ -1,4 +1,3 @@
-using Billing.Api.Mappings;
 using Billing.Contracts.Orders;
 using Billing.Logic.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +28,7 @@ public class OrdersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<OrderRequest>> ProcessOrder(OrderRequest request, CancellationToken cancellationToken)
     {
-        if (!await _orderService.ProcessOrderAsync(request.ToDomain(), cancellationToken))
+        if (!await _orderService.ProcessOrderAsync(request,cancellationToken))
             return Problem(statusCode: StatusCodes.Status409Conflict,
                 detail: $"Order '{request.OrderNumber}' has already been processed.");
 
