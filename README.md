@@ -42,7 +42,7 @@ Orders are stored in memory, keyed by order number, and are lost when the API re
 dotnet run --project src/Billing.Api --launch-profile http
 ```
 
-The API listens on `http://localhost:5209`. In Development, the OpenAPI document is served at `http://localhost:5209/openapi/v1.json`.
+The API listens on `http://localhost:5209`. In Development, the OpenAPI document is served at `http://localhost:5209/openapi/v1.json` and Swagger UI at `http://localhost:5209/swagger`.
 
 No configuration or environment variables are required.
 
