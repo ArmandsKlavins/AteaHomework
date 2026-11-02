@@ -1,105 +1,22 @@
 # XYZ Inc. Billing Application
 
-A billing application that accepts orders over a REST API and processes them through mocked payment gateways.
+Accepts orders over a REST API and pays them through mocked payment gateways. ASP.NET Core (.NET 10) backend, Angular 22 frontend.
 
-## Tech stack
+## Running
 
-- Backend: ASP.NET Core Web API (.NET 10, controllers)
-- Frontend: Angular 22 (standalone components, signals, reactive forms)
-- Tests: xUnit, Moq, `FakeTimeProvider`, `WebApplicationFactory`
+Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) 22+ with npm.
 
-## Project structure
-
-```
-backend/
-  Billing.slnx
-  src/
-    Billing.Api/
-      Controllers/OrdersController.cs   # POST /api/orders, GET /api/orders/{orderNumber}/receipt
-      Controllers/PaymentGatewaysController.cs  # GET /api/payment-gateways
-      Program.cs                        # DI registrations
-    Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
-      Orders/OrderRequest.cs            # order payload + validation rules
-      Validation/MaxDecimalPlacesAttribute.cs  # e.g. at most 2 decimals for money
-      Receipts/ReceiptResponse.cs       # returned for a paid order
-      PaymentGateways/PaymentGatewayResponse.cs  # an available gateway (ID only)
-    Billing.Logic/                      # business logic, no ASP.NET dependency
-      Mappings/OrderMappings.cs         # request DTO → domain
-      Mappings/ReceiptMappings.cs       # domain → response DTO
-      Mappings/PaymentGatewayMappings.cs  # gateway → response DTO
-      Services/OrderService.cs          # order processing: resolve gateway, store, charge
-      Services/ReceiptService.cs        # receipt creation and lookup
-      Services/PaymentGatewayService.cs # lists available gateways
-      Models/OrderResult.cs             # outcome: Processed / Duplicate / UnknownGateway / Declined
-    Billing.Infrastructure/             # implementations that talk to the outside world (storage, payment providers)
-      Repositories/IOrderRepository.cs
-      Repositories/InMemoryOrderRepository.cs
-      Repositories/IReceiptRepository.cs
-      Repositories/InMemoryReceiptRepository.cs
-      PaymentGateways/IPaymentGateway.cs
-      PaymentGateways/PaymentGatewayResolver.cs  # finds a gateway by ID
-      PaymentGateways/Models/PaymentResult.cs    # approved with transaction ID, or declined with a reason
-      PaymentGateways/Mocks/CardPaymentGateway.cs
-      PaymentGateways/Mocks/BankPaymentGateway.cs
-    Billing.Domain/                     # domain models used by logic and storage
-      Order.cs
-      Receipt.cs                        # linked to its order by OrderNumber
-  tests/
-    Billing.UnitTests/                  # mirrors src: Logic/, Infrastructure/, Contracts/
-    Billing.IntegrationTests/           # the whole API over HTTP, in memory (WebApplicationFactory)
-frontend/                             # Angular app
-  src/app/services/billing-api.ts     # API calls (API URL: http://localhost:5209/api)
-  src/app/models/                     # API types, one per file: OrderRequest, Receipt, PaymentGateway, ProblemDetails
-  src/app/app.ts, app.html, app.css   # order form, receipt and error display
-```
-
-Classic N-layer, not Clean Architecture: Logic depends on Infrastructure, and Infrastructure holds the interfaces and their implementations. Project references: `Api → Logic → Infrastructure → Domain`. Api also references Contracts and Infrastructure (to register the repository and gateways in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
-
-Orders and receipts are stored in memory in separate repositories, both keyed by order number, and are lost when the API restarts. A receipt is stored for every approved payment.
-
-### Payment gateways
-
-The order's `paymentGatewayId` picks the gateway (case-insensitive). Both gateways are mocks:
-
-| ID     | Behaviour                  |
-|--------|----------------------------|
-| `card` | approves every payment     |
-| `bank` | declines amounts over 1000 |
-
-To add a gateway, implement `IPaymentGateway` and register it in `Program.cs` with `AddSingleton<IPaymentGateway, YourGateway>()`. Two gateways with the same ID make the first request that uses gateways fail with an error.
-
-Gateway IDs are a public contract: clients send them as `paymentGatewayId` and use them as translation keys for display names. Add new gateways freely, but never rename or remove an ID without treating it as a breaking change.
-
-The service resolves the gateway first (an unknown ID doesn't use up the order number), then stores the order (which claims the order number atomically), then charges it. A declined order is removed again, so the same order number can be retried; an approved one returns `409` on any resubmit. Once started, the charge runs to the end even if the client disconnects. If the charge fails with an error (for example a gateway timeout), the payment may or may not have gone through: the request returns `500`, the failure is logged with the order number and gateway, and the order number stays blocked (`409` on retry) until it's checked with the gateway by hand. This never charges twice.
-
-Every order outcome is logged (structured, with the order number and gateway as fields) to the console: `Information` for charging, paid (with the transaction ID) and declined orders, `Warning` for unknown gateways and duplicates, and `Error` for failed charges.
-
-### Retries
-
-Failed charges are deliberately not retried, neither by the API nor by the frontend. A charge that fails with an error, such as a timeout, may still have gone through at the gateway, and charging again could take the money twice, which is exactly what the task rules out. So the API returns `500`, keeps the order number blocked and logs the order for a manual check. Clients can safely repeat everything else: a declined order can be resubmitted, and `GET /api/orders/{orderNumber}/receipt` recovers the receipt of a paid order whose response got lost.
-
-With real gateways, retries become safe once each charge sends the order number as an idempotency key, so the gateway returns the original result for a repeat instead of charging again. Timeouts can then be retried automatically, for example with [Polly](https://www.pollydocs.org/) through `Microsoft.Extensions.Http.Resilience` on the gateway's `HttpClient`. The mocks answer instantly and never fail, so there is nothing to retry yet.
-
-## Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/) 22 or later (tested with 24), with npm
-
-## Running the backend
+Backend (API on `http://localhost:5209`, Swagger UI at `http://localhost:5209/swagger`):
 
 ```bash
-dotnet run --project backend/src/Billing.Api --launch-profile http
+cd backend/src/Billing.Api
 ```
 
-The API listens on `http://localhost:5209`. In Development, the OpenAPI document is served at `http://localhost:5209/openapi/v1.json` and Swagger UI at `http://localhost:5209/swagger`.
+```bash
+dotnet run
+```
 
-No configuration or environment variables are required. The one setting is `Cors:AllowedOrigins` in `appsettings.json`: the browser origins allowed to call the API, by default the Angular dev server (`http://localhost:4200`). Override it with environment variables, for example `Cors__AllowedOrigins__0=http://localhost:8080`.
-
-The API doesn't redirect HTTP to HTTPS, because browsers reject redirected CORS preflight requests. Use the `https` launch profile, or put the API behind a proxy that terminates HTTPS, when HTTPS is needed.
-
-## Running the frontend
-
-With the backend running, in a second terminal:
+Frontend (`http://localhost:4200`), in a second terminal:
 
 ```bash
 cd frontend
@@ -109,79 +26,102 @@ cd frontend
 npm install && npm start
 ```
 
-Open `http://localhost:4200`. The page lists the payment gateways from the API, fills in a random order number (like `ORD-3F2B9C1A`) with the "New number" button, validates the order with the same rules as the API before sending it (fields are marked when invalid), and shows the receipt, or the API's error message (for example a declined payment or an order number that was already paid).
-
-## Running the tests
+Tests (unit + integration, no running server needed), from the repository root:
 
 ```bash
 dotnet test backend/Billing.slnx
 ```
 
-The unit tests cover order processing (every outcome, including that an unknown gateway doesn't use up the order number and a declined order can be retried), receipts, gateway lookup and the mock gateways, the repositories (including concurrent submits of one order number), and request validation.
+### Configuration
 
-The integration tests run the real API in memory and call it over HTTP: every `POST /api/orders` outcome with its status code and ProblemDetails body, fetching the receipt from the `Location` header, a declined order retried on another gateway, a gateway that throws (`500` without internal details, then `409` on retry), the gateway list, and ProblemDetails for unknown routes. They need no running server or configuration.
+None needed: the app runs out of the box with mock payment gateways.
+
+The only setting is `Cors:AllowedOrigins` in `backend/src/Billing.Api/appsettings.json`, the browser origins allowed to call the API. It defaults to the Angular dev server (`http://localhost:4200`).
+
+## Task requirements
+
+| Requirement | How / where |
+|---|---|
+| Receive an order, forward it to the right payment gateway | `POST /api/orders` → `OrderService` resolves the gateway by `paymentGatewayId` and charges it |
+| Receipt on success (order number, amount, timestamp, confirmation) | `201 Created` with `ReceiptResponse` (`orderNumber`, `amount`, `paidAt`, `transactionId`); also `GET /api/orders/{orderNumber}/receipt` |
+| Clear error on failure | Every error is [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457): `400` validation / unknown gateway, `402` declined, `409` duplicate, `500` unexpected |
+| No double payment | The order number is claimed atomically (`ConcurrentDictionary.TryAdd` in `InMemoryOrderRepository`) before charging; a resubmit gets `409` |
+| Multiple gateways, extensible | `IPaymentGateway` + `IPaymentGatewayResolver`; mocks `card` and `bank` in `Infrastructure/PaymentGateways/Mocks/`. New gateway = one class + one DI line in `Program.cs` |
+| Unit tests | `backend/tests/Billing.UnitTests` (xUnit, Moq, `FakeTimeProvider`) |
+| Clean, maintainable, extensible code | N-layer projects with one job each; dependencies behind interfaces and injected (gateways, repositories, services, `TimeProvider`); outcomes as result types, not exceptions. New gateways or storage plug in through DI without touching the logic layer |
+| UI submits orders and displays results | Angular app in `frontend/`: order form with gateway picker, shows the receipt or the API's error message |
+| Runs with `dotnet run` / `npm install && npm start` | See [Running](#running) |
+| Bonus: logging, structured errors | Structured logs for every order outcome in `OrderService`; ProblemDetails everywhere, incl. unknown routes and `500` |
+| Bonus: Swagger / OpenAPI | `/openapi/v1.json` and Swagger UI at `/swagger` (Development) |
+| Bonus: retry logic | A declined order can be resubmitted with the same order number. Failed charges are deliberately not retried automatically (double-charge risk). See [Retries](#retries) for full info |
+| Bonus: integration tests | `backend/tests/Billing.IntegrationTests` (`WebApplicationFactory`, real HTTP in memory) |
+| Bonus: frontend validation | Reactive form validators mirroring `OrderRequest` (`frontend/src/app/app.ts`) |
+| Bonus: Docker Compose | Not done |
+
+## Project structure
+
+```
+backend/
+  Billing.slnx
+  src/
+    Billing.Api/             # controllers, DI (Program.cs)
+    Billing.Contracts/       # request/response DTOs with validation
+    Billing.Logic/           # OrderService, ReceiptService, PaymentGatewayService, mappings
+    Billing.Infrastructure/  # repositories (in memory), payment gateways (mocks)
+    Billing.Domain/          # Order, Receipt
+  tests/
+    Billing.UnitTests/
+    Billing.IntegrationTests/
+frontend/src/app/            # App (form, receipt, errors), services/billing-api.ts, models/
+```
+
+Classic N-layer: `Api → Logic → Infrastructure → Domain`, with Contracts shared by Api and Logic. Orders and receipts are stored in memory and lost on restart.
+
+The logic layer only depends on the `IOrderRepository` and `IReceiptRepository` interfaces, so storage can later move to a database (for example with Entity Framework Core) without touching Logic: add new repository implementations in `Billing.Infrastructure/Repositories/` and swap their DI registrations in `Program.cs`. The order repository's `TryAddAsync` must stay atomic (for example a unique key on the order number, returning `false` on a duplicate insert), because that is what prevents double payment.
+
 ## API
 
-Every error response is a [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457) object (`application/problem+json`) with `status`, `title`, an optional `detail` and a `traceId` that matches the server logs. That includes errors outside the endpoints below, such as unknown routes (`404`), wrong methods (`405`) and unexpected server errors (`500`, without internal details outside Development).
+| Endpoint | Responses |
+|---|---|
+| `POST /api/orders` | `201` receipt (+ `Location` header) · `400` invalid / unknown gateway · `402` declined · `409` already processed · `500` charge failed |
+| `GET /api/orders/{orderNumber}/receipt` | `200` receipt · `404` not paid |
+| `GET /api/payment-gateways` | `200` `[{ "id": "card" }, { "id": "bank" }]` (unordered) |
 
-### `POST /api/orders`
+Order request:
 
-Submits an order for processing.
-
-Request body:
-
-| Field              | Type    | Required | Rules                                                   |
-|--------------------|---------|----------|---------------------------------------------------------|
-| `orderNumber`      | string  | yes      | 1–50 characters: letters, digits, `-` and `_` only      |
-| `userId`           | string  | yes      | not empty, up to 100 characters                         |
-| `payableAmount`    | decimal | yes      | at least `0.01`, at most 2 decimal places               |
-| `paymentGatewayId` | string  | yes      | an ID from `GET /api/payment-gateways`, up to 50 characters |
-| `description`      | string  | no       | up to 500 characters                                    |
-
-The order number's character set keeps it safe in the receipt URL (`/api/orders/{orderNumber}/receipt`).
-
-Example:
+| Field | Rules |
+|---|---|
+| `orderNumber` | required, 1–50 letters, digits, `-`, `_` |
+| `userId` | required, up to 100 characters |
+| `payableAmount` | at least `0.01`, at most 2 decimals |
+| `paymentGatewayId` | required, an ID from `GET /api/payment-gateways` (case-insensitive) |
+| `description` | optional, up to 500 characters |
 
 ```bash
 curl -X POST http://localhost:5209/api/orders \
   -H "Content-Type: application/json" \
-  -d '{"orderNumber":"ORD-1","userId":"user-1","payableAmount":10.50,"paymentGatewayId":"card","description":"Test order"}'
+  -d '{"orderNumber":"ORD-1","userId":"user-1","payableAmount":10.50,"paymentGatewayId":"card"}'
 ```
-
-Responses:
-
-- `201 Created`: the payment was approved; returns the receipt, with `Location: /api/orders/ORD-1/receipt`:
-  ```json
-  {
-    "orderNumber": "ORD-1",
-    "amount": 10.50,
-    "paidAt": "2026-11-02T10:15:30.123+00:00",
-    "transactionId": "card_3f2b9c..."
-  }
-  ```
-  `transactionId` is the payment confirmation from the gateway.
-- `400 Bad Request`: validation errors, or an unknown `paymentGatewayId`, as [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457)
-- `402 Payment Required`: the gateway declined the payment; ProblemDetails with the title `Payment declined` and the reason in `detail`
-- `409 Conflict`: an order with the same `orderNumber` has already been processed; if it was paid, fetch its receipt with the endpoint below
-- `500 Internal Server Error`: the gateway call failed, so whether the payment went through is unknown; the order number stays blocked (see above)
-
-### `GET /api/orders/{orderNumber}/receipt`
-
-Returns the receipt of a paid order, for example when the client lost the response to its `POST`.
-
-Responses:
-
-- `200 OK`: the receipt, same shape as above
-- `404 Not Found`: no paid order has this order number (never submitted, declined, or still being charged), as ProblemDetails
-
-### `GET /api/payment-gateways`
-
-Lists the gateways an order can be paid through, in no particular order (clients sort them as they like):
 
 ```json
-[{ "id": "card" }, { "id": "bank" }]
+{ "orderNumber": "ORD-1", "amount": 10.50, "paidAt": "2026-11-02T10:15:30.123+00:00", "transactionId": "card_3f2b9c..." }
 ```
 
-Only IDs are returned; the frontend decides how to name each gateway in each language it supports, and can fall back to the ID for one it has no translation for.
+More sample requests: `backend/src/Billing.Api/Billing.Api.http`.
 
-You can also send the sample requests in `backend/src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).
+## Payment gateways
+
+| ID | Mock behaviour |
+|---|---|
+| `card` | approves every payment |
+| `bank` | declines amounts over 1000 |
+
+## Retries
+
+An order is processed in three steps: resolve the gateway (a typo doesn't use up the order number) → store the order (claims the number) → charge. What a resubmit of the same order number gets depends on how the first attempt ended:
+
+- **Declined**: the order is removed, so the number can be retried.
+- **Paid**: `409`; a client that lost the response can recover its receipt with `GET /api/orders/{orderNumber}/receipt`.
+- **Charge failed** (e.g. a gateway timeout): the payment may still have gone through, so the API returns `500`, logs the order for a manual check and keeps the number blocked (`409`). Failed charges are deliberately never retried automatically, because charging again could take the money twice.
+
+With real gateways, retries become safe once each charge sends the order number as an idempotency key; then timeouts can be retried with [Polly](https://www.pollydocs.org/) (`Microsoft.Extensions.Http.Resilience`) on the gateway's `HttpClient`.
