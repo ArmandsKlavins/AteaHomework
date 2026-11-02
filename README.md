@@ -21,14 +21,14 @@ src/
   Billing.Logic/                      # business logic, no ASP.NET dependency
     Mappings/OrderMappings.cs         # DTO → domain mapping
     Services/OrderService.cs          # order processing
-  Billing.Data/                       # data access
+  Billing.Infrastructure/             # implementations that talk to the outside world (storage)
     Repositories/IOrderRepository.cs
     Repositories/InMemoryOrderRepository.cs
   Billing.Domain/                     # domain models used by logic and storage
     Order.cs
 ```
 
-Project references: `Api → Logic → Data → Domain`. Api also references Contracts and Data (to register the repository in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
+Classic N-layer, not Clean Architecture: Logic depends on Infrastructure, and Infrastructure holds the interfaces and their implementations. Project references: `Api → Logic → Infrastructure → Domain`. Api also references Contracts and Infrastructure (to register the repository in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
 
 Orders are stored in memory, keyed by order number, and are lost when the API restarts.
 

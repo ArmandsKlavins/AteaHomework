@@ -1,5 +1,5 @@
 using Billing.Contracts.Orders;
-using Billing.Data.Repositories;
+using Billing.Infrastructure.Repositories;
 using Billing.Logic.Mappings;
 
 namespace Billing.Logic.Services;

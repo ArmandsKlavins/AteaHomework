@@ -1,6 +1,6 @@
 using Billing.Domain;
 
-namespace Billing.Data.Repositories;
+namespace Billing.Infrastructure.Repositories;
 
 public interface IOrderRepository
 {

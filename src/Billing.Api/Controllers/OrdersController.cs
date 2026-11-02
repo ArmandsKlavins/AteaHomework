@@ -28,7 +28,7 @@ public class OrdersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<OrderRequest>> ProcessOrder(OrderRequest request, CancellationToken cancellationToken)
     {
-        if (!await _orderService.ProcessOrderAsync(request,cancellationToken))
+        if (!await _orderService.ProcessOrderAsync(request, cancellationToken))
             return Problem(statusCode: StatusCodes.Status409Conflict,
                 detail: $"Order '{request.OrderNumber}' has already been processed.");
 

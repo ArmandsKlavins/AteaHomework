@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Billing.Logic\Billing.Logic.csproj" />
-    <ProjectReference Include="..\Billing.Data\Billing.Data.csproj" />
+    <ProjectReference Include="..\Billing.Infrastructure\Billing.Infrastructure.csproj" />
     <ProjectReference Include="..\Billing.Contracts\Billing.Contracts.csproj" />
   </ItemGroup>
 
