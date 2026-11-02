@@ -9,6 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
+
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
 builder.Services.AddSingleton<IReceiptRepository, InMemoryReceiptRepository>();
@@ -27,7 +31,7 @@ var app = builder.Build();
 // Unhandled exceptions and empty error responses (e.g. unknown routes) become ProblemDetails, like the controllers' own errors
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-app.UseHttpsRedirection();
+app.UseCors();
 
 if (app.Environment.IsDevelopment())
 {

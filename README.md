@@ -82,7 +82,9 @@ dotnet run --project src/Billing.Api --launch-profile http
 
 The API listens on `http://localhost:5209`. In Development, the OpenAPI document is served at `http://localhost:5209/openapi/v1.json` and Swagger UI at `http://localhost:5209/swagger`.
 
-No configuration or environment variables are required.
+No configuration or environment variables are required. The one setting is `Cors:AllowedOrigins` in `appsettings.json`: the browser origins allowed to call the API, by default the Angular dev server (`http://localhost:4200`). Override it with environment variables, for example `Cors__AllowedOrigins__0=http://localhost:8080`.
+
+The API doesn't redirect HTTP to HTTPS, because browsers reject redirected CORS preflight requests. Use the `https` launch profile, or put the API behind a proxy that terminates HTTPS, when HTTPS is needed.
 
 ## Running the tests
 
