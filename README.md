@@ -15,15 +15,19 @@ Billing.slnx
 src/
   Billing.Api/
     Controllers/OrdersController.cs   # POST /api/orders, GET /api/orders/{orderNumber}/receipt
+    Controllers/PaymentGatewaysController.cs  # GET /api/payment-gateways
     Program.cs                        # DI registrations
   Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
     Orders/OrderRequest.cs            # order payload + validation rules
     Receipts/ReceiptResponse.cs       # returned for a paid order
+    PaymentGateways/PaymentGatewayResponse.cs  # an available gateway (ID only)
   Billing.Logic/                      # business logic, no ASP.NET dependency
     Mappings/OrderMappings.cs         # request DTO → domain
     Mappings/ReceiptMappings.cs       # domain → response DTO
+    Mappings/PaymentGatewayMappings.cs  # gateway → response DTO
     Services/OrderService.cs          # order processing: resolve gateway, store, charge
     Services/ReceiptService.cs        # receipt creation and lookup
+    Services/PaymentGatewayService.cs # lists available gateways
     Models/OrderResult.cs             # outcome: Processed / Duplicate / UnknownGateway / Declined
   Billing.Infrastructure/             # implementations that talk to the outside world (storage, payment providers)
     Repositories/IOrderRepository.cs
@@ -53,7 +57,9 @@ The order's `paymentGatewayId` picks the gateway (case-insensitive). Both gatewa
 | `card` | approves every payment     |
 | `bank` | declines amounts over 1000 |
 
-To add a gateway, implement `IPaymentGateway` and register it in `Program.cs` with `AddSingleton<IPaymentGateway, YourGateway>()`. Two gateways with the same ID make the first order fail with an error.
+To add a gateway, implement `IPaymentGateway` and register it in `Program.cs` with `AddSingleton<IPaymentGateway, YourGateway>()`. Two gateways with the same ID make the first request that uses gateways fail with an error.
+
+Gateway IDs are a public contract: clients send them as `paymentGatewayId` and use them as translation keys for display names. Add new gateways freely, but never rename or remove an ID without treating it as a breaking change.
 
 The service resolves the gateway first (an unknown ID doesn't use up the order number), then stores the order (which claims the order number atomically), then charges it. A declined order is removed again, so the same order number can be retried; an approved one returns `409` on any resubmit.
 
@@ -84,7 +90,7 @@ Request body:
 | `orderNumber`      | string  | yes      | not empty        |
 | `userId`           | string  | yes      | not empty        |
 | `payableAmount`    | decimal | yes      | at least `0.01`  |
-| `paymentGatewayId` | string  | yes      | not empty        |
+| `paymentGatewayId` | string  | yes      | an ID from `GET /api/payment-gateways` |
 | `description`      | string  | no       |                  |
 
 Example:
@@ -119,5 +125,15 @@ Responses:
 
 - `200 OK`: the receipt, same shape as above
 - `404 Not Found`: no paid order has this order number (never submitted, declined, or still being charged), as ProblemDetails
+
+### `GET /api/payment-gateways`
+
+Lists the gateways an order can be paid through, in no particular order (clients sort them as they like):
+
+```json
+[{ "id": "card" }, { "id": "bank" }]
+```
+
+Only IDs are returned; the frontend decides how to name each gateway in each language it supports, and can fall back to the ID for one it has no translation for.
 
 You can also send the sample requests in `src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).

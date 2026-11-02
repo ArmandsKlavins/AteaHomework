@@ -6,15 +6,20 @@ namespace Billing.Infrastructure.PaymentGateways;
 /// </summary>
 public class PaymentGatewayResolver : IPaymentGatewayResolver
 {
-    private readonly Dictionary<string, IPaymentGateway> _gateways;
+    private readonly Dictionary<string, IPaymentGateway> _gatewaysById;
 
     public PaymentGatewayResolver(IEnumerable<IPaymentGateway> gateways)
     {
-        _gateways = gateways.ToDictionary(gateway => gateway.Id, StringComparer.OrdinalIgnoreCase);
+        _gatewaysById = gateways.ToDictionary(gateway => gateway.Id, StringComparer.OrdinalIgnoreCase);
     }
 
     public IPaymentGateway? Resolve(string gatewayId)
     {
-        return _gateways.GetValueOrDefault(gatewayId);
+        return _gatewaysById.GetValueOrDefault(gatewayId);
+    }
+
+    public IReadOnlyList<IPaymentGateway> GetAll()
+    {
+        return _gatewaysById.Values.ToList();
     }
 }

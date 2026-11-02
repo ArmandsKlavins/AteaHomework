@@ -16,3 +16,7 @@ Content-Type: application/json
 GET {{Billing.Api_HostAddress}}/api/orders/ORD-1/receipt
 
 ###
+
+GET {{Billing.Api_HostAddress}}/api/payment-gateways
+
+###

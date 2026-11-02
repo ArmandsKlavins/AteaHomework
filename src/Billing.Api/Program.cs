@@ -15,6 +15,7 @@ builder.Services.AddSingleton<IPaymentGateway, BankPaymentGateway>();
 builder.Services.AddSingleton<IPaymentGatewayResolver, PaymentGatewayResolver>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
+builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
