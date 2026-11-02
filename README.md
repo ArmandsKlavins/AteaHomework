@@ -2,7 +2,7 @@
 
 A billing application that accepts orders over a REST API and processes them through mocked payment gateways.
 
-> Work in progress: only the backend exists so far, and a successful order returns the submitted order instead of a receipt.
+> Work in progress: only the backend exists so far.
 
 ## Tech stack
 
@@ -18,13 +18,17 @@ src/
     Program.cs                        # DI registrations
   Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
     Orders/OrderRequest.cs            # order payload + validation rules
+    Receipts/ReceiptResponse.cs       # returned for a paid order
   Billing.Logic/                      # business logic, no ASP.NET dependency
-    Mappings/OrderMappings.cs         # DTO → domain mapping
+    Mappings/OrderMappings.cs         # request DTO → domain
+    Mappings/ReceiptMappings.cs       # domain → response DTO
     Services/OrderService.cs          # order processing: resolve gateway, store, charge
     Models/OrderResult.cs             # outcome: Processed / Duplicate / UnknownGateway / Declined
   Billing.Infrastructure/             # implementations that talk to the outside world (storage, payment providers)
     Repositories/IOrderRepository.cs
     Repositories/InMemoryOrderRepository.cs
+    Repositories/IReceiptRepository.cs
+    Repositories/InMemoryReceiptRepository.cs
     PaymentGateways/IPaymentGateway.cs
     PaymentGateways/PaymentGatewayResolver.cs  # finds a gateway by ID
     PaymentGateways/Models/PaymentResult.cs    # approved with transaction ID, or declined with a reason
@@ -32,11 +36,12 @@ src/
     PaymentGateways/Mocks/BankPaymentGateway.cs
   Billing.Domain/                     # domain models used by logic and storage
     Order.cs
+    Receipt.cs                        # linked to its order by OrderNumber
 ```
 
 Classic N-layer, not Clean Architecture: Logic depends on Infrastructure, and Infrastructure holds the interfaces and their implementations. Project references: `Api → Logic → Infrastructure → Domain`. Api also references Contracts and Infrastructure (to register the repository and gateways in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
 
-Orders are stored in memory, keyed by order number, and are lost when the API restarts.
+Orders and receipts are stored in memory in separate repositories, both keyed by order number, and are lost when the API restarts. A receipt is stored for every approved payment.
 
 ### Payment gateways
 
@@ -91,7 +96,16 @@ curl -X POST http://localhost:5209/api/orders \
 
 Responses:
 
-- `200 OK`: the payment was approved; returns the submitted order (placeholder until the receipt response is implemented)
+- `200 OK`: the payment was approved; returns the receipt:
+  ```json
+  {
+    "orderNumber": "ORD-1",
+    "amount": 10.50,
+    "paidAt": "2026-11-02T10:15:30.123+00:00",
+    "transactionId": "card_3f2b9c..."
+  }
+  ```
+  `transactionId` is the payment confirmation from the gateway.
 - `400 Bad Request`: validation errors, or an unknown `paymentGatewayId`, as [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457)
 - `402 Payment Required`: the gateway declined the payment; ProblemDetails with the title `Payment declined` and the reason in `detail`
 - `409 Conflict`: an order with the same `orderNumber` has already been processed

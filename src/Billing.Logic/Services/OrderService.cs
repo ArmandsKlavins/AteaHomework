@@ -1,4 +1,5 @@
 using Billing.Contracts.Orders;
+using Billing.Domain;
 using Billing.Infrastructure.PaymentGateways;
 using Billing.Infrastructure.Repositories;
 using Billing.Logic.Mappings;
@@ -9,11 +10,13 @@ namespace Billing.Logic.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IReceiptRepository _receiptRepository;
     private readonly IPaymentGatewayResolver _paymentGatewayResolver;
 
-    public OrderService(IOrderRepository orderRepository, IPaymentGatewayResolver paymentGatewayResolver)
+    public OrderService(IOrderRepository orderRepository, IReceiptRepository receiptRepository, IPaymentGatewayResolver paymentGatewayResolver)
     {
         _orderRepository = orderRepository;
+        _receiptRepository = receiptRepository;
         _paymentGatewayResolver = paymentGatewayResolver;
     }
 
@@ -42,6 +45,17 @@ public class OrderService : IOrderService
             return new OrderResult { Status = OrderResultStatus.Declined, DeclineReason = payment.DeclineReason };
         }
 
-        return new OrderResult { Status = OrderResultStatus.Processed, TransactionId = payment.TransactionId };
+        var receipt = new Receipt
+        {
+            OrderNumber = order.OrderNumber,
+            Amount = order.PayableAmount,
+            PaidAt = DateTimeOffset.UtcNow,
+            TransactionId = payment.TransactionId!
+        };
+
+        // The payment went through, so the receipt must be stored even if the client has gone
+        await _receiptRepository.AddAsync(receipt, CancellationToken.None);
+
+        return new OrderResult { Status = OrderResultStatus.Processed, Receipt = receipt.ToResponse() };
     }
 }

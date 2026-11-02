@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
+builder.Services.AddSingleton<IReceiptRepository, InMemoryReceiptRepository>();
 builder.Services.AddSingleton<IPaymentGateway, CardPaymentGateway>();
 builder.Services.AddSingleton<IPaymentGateway, BankPaymentGateway>();
 builder.Services.AddSingleton<IPaymentGatewayResolver, PaymentGatewayResolver>();
