@@ -93,6 +93,8 @@ The unit tests cover order processing (every outcome, including that an unknown 
 
 ## API
 
+Every error response is a [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457) object (`application/problem+json`) with `status`, `title`, an optional `detail` and a `traceId` that matches the server logs. That includes errors outside the endpoints below, such as unknown routes (`404`), wrong methods (`405`) and unexpected server errors (`500`, without internal details outside Development).
+
 ### `POST /api/orders`
 
 Submits an order for processing.
@@ -132,6 +134,7 @@ Responses:
 - `400 Bad Request`: validation errors, or an unknown `paymentGatewayId`, as [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457)
 - `402 Payment Required`: the gateway declined the payment; ProblemDetails with the title `Payment declined` and the reason in `detail`
 - `409 Conflict`: an order with the same `orderNumber` has already been processed; if it was paid, fetch its receipt with the endpoint below
+- `500 Internal Server Error`: the gateway call failed, so whether the payment went through is unknown; the order number stays blocked (see above)
 
 ### `GET /api/orders/{orderNumber}/receipt`
 
