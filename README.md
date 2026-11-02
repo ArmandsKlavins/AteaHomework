@@ -73,6 +73,12 @@ The service resolves the gateway first (an unknown ID doesn't use up the order n
 
 Every order outcome is logged (structured, with the order number and gateway as fields) to the console: `Information` for charging, paid (with the transaction ID) and declined orders, `Warning` for unknown gateways and duplicates, and `Error` for failed charges.
 
+### Retries
+
+Failed charges are deliberately not retried, neither by the API nor by the frontend. A charge that fails with an error, such as a timeout, may still have gone through at the gateway, and charging again could take the money twice, which is exactly what the task rules out. So the API returns `500`, keeps the order number blocked and logs the order for a manual check. Clients can safely repeat everything else: a declined order can be resubmitted, and `GET /api/orders/{orderNumber}/receipt` recovers the receipt of a paid order whose response got lost.
+
+With real gateways, retries become safe once each charge sends the order number as an idempotency key, so the gateway returns the original result for a repeat instead of charging again. Timeouts can then be retried automatically, for example with [Polly](https://www.pollydocs.org/) through `Microsoft.Extensions.Http.Resilience` on the gateway's `HttpClient`. The mocks answer instantly and never fail, so there is nothing to retry yet.
+
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
