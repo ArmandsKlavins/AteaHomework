@@ -6,6 +6,7 @@ using Billing.Infrastructure.PaymentGateways.Models;
 using Billing.Infrastructure.Repositories;
 using Billing.Logic.Models;
 using Billing.Logic.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Billing.UnitTests.Logic.Services;
@@ -16,6 +17,7 @@ public class OrderServiceTests
     private readonly Mock<IReceiptService> _receiptService = new();
     private readonly Mock<IPaymentGatewayResolver> _resolver = new();
     private readonly Mock<IPaymentGateway> _gateway = new();
+    private readonly Mock<ILogger<OrderService>> _logger = new();
     private readonly OrderService _service;
 
     private readonly OrderRequest _request = new()
@@ -31,7 +33,7 @@ public class OrderServiceTests
         _resolver.Setup(resolver => resolver.Resolve("card")).Returns(_gateway.Object);
         _orderRepository.Setup(repository => repository.TryAddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
-        _service = new OrderService(_orderRepository.Object, _receiptService.Object, _resolver.Object);
+        _service = new OrderService(_orderRepository.Object, _receiptService.Object, _resolver.Object, _logger.Object);
     }
 
     [Fact]
@@ -79,6 +81,20 @@ public class OrderServiceTests
     }
 
     [Fact]
+    public async Task ProcessOrderAsync_ChargeThrows_LogsAndRethrowsAndKeepsTheOrder()
+    {
+        // Arrange
+        var exception = new TimeoutException();
+        _gateway.Setup(gateway => gateway.ChargeAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>())).ThrowsAsync(exception);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<TimeoutException>(() => _service.ProcessOrderAsync(_request, CancellationToken.None));
+        _logger.Verify(logger => logger.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), exception,
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        _orderRepository.Verify(repository => repository.RemoveAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ProcessOrderAsync_ApprovedPayment_ReturnsReceiptAndKeepsTheOrder()
     {
         // Arrange
@@ -98,7 +114,7 @@ public class OrderServiceTests
     }
 
     [Fact]
-    public async Task ProcessOrderAsync_ApprovedPayment_CreatesReceiptWithoutTheRequestsCancellationToken()
+    public async Task ProcessOrderAsync_ApprovedPayment_ChargesAndCreatesReceiptWithoutTheRequestsCancellationToken()
     {
         // Arrange
         using var cancellation = new CancellationTokenSource();
@@ -108,6 +124,7 @@ public class OrderServiceTests
         await _service.ProcessOrderAsync(_request, cancellation.Token);
 
         // Assert
+        _gateway.Verify(gateway => gateway.ChargeAsync(It.IsAny<Order>(), CancellationToken.None), Times.Once);
         _receiptService.Verify(service => service.CreateReceiptAsync(It.IsAny<Order>(), "tx-1", CancellationToken.None), Times.Once);
     }
 

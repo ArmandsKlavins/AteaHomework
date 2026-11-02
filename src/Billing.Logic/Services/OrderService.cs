@@ -1,8 +1,10 @@
 using Billing.Contracts.Orders;
 using Billing.Infrastructure.PaymentGateways;
+using Billing.Infrastructure.PaymentGateways.Models;
 using Billing.Infrastructure.Repositories;
 using Billing.Logic.Mappings;
 using Billing.Logic.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Billing.Logic.Services;
 
@@ -11,12 +13,15 @@ public class OrderService : IOrderService
     private readonly IOrderRepository _orderRepository;
     private readonly IReceiptService _receiptService;
     private readonly IPaymentGatewayResolver _paymentGatewayResolver;
+    private readonly ILogger<OrderService> _logger;
 
-    public OrderService(IOrderRepository orderRepository, IReceiptService receiptService, IPaymentGatewayResolver paymentGatewayResolver)
+    public OrderService(IOrderRepository orderRepository, IReceiptService receiptService, IPaymentGatewayResolver paymentGatewayResolver,
+        ILogger<OrderService> logger)
     {
         _orderRepository = orderRepository;
         _receiptService = receiptService;
         _paymentGatewayResolver = paymentGatewayResolver;
+        _logger = logger;
     }
 
     public async Task<OrderResult> ProcessOrderAsync(OrderRequest request, CancellationToken cancellationToken)
@@ -36,7 +41,20 @@ public class OrderService : IOrderService
             return new OrderResult { Status = OrderResultStatus.Duplicate };
         }
 
-        var payment = await gateway.ChargeAsync(order, cancellationToken);
+        PaymentResult payment;
+        try
+        {
+            // Once started, the charge runs to the end even if the client has gone, so its outcome is known
+            payment = await gateway.ChargeAsync(order, CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            // The charge may have gone through, so the order stays stored (a retry gets 409) until someone checks it with the gateway
+            _logger.LogError(exception, "Charging order {OrderNumber} through gateway {PaymentGatewayId} failed; the payment outcome is unknown",
+                order.OrderNumber, gateway.Id);
+            throw;
+        }
+
         if (!payment.IsApproved)
         {
             // Nothing was charged, so free the order number for a retry
