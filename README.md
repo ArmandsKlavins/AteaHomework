@@ -19,6 +19,7 @@ src/
     Program.cs                        # DI registrations
   Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
     Orders/OrderRequest.cs            # order payload + validation rules
+    Validation/MaxDecimalPlacesAttribute.cs  # e.g. at most 2 decimals for money
     Receipts/ReceiptResponse.cs       # returned for a paid order
     PaymentGateways/PaymentGatewayResponse.cs  # an available gateway (ID only)
   Billing.Logic/                      # business logic, no ASP.NET dependency
@@ -85,13 +86,15 @@ Submits an order for processing.
 
 Request body:
 
-| Field              | Type    | Required | Rules            |
-|--------------------|---------|----------|------------------|
-| `orderNumber`      | string  | yes      | not empty        |
-| `userId`           | string  | yes      | not empty        |
-| `payableAmount`    | decimal | yes      | at least `0.01`  |
-| `paymentGatewayId` | string  | yes      | an ID from `GET /api/payment-gateways` |
-| `description`      | string  | no       |                  |
+| Field              | Type    | Required | Rules                                                   |
+|--------------------|---------|----------|---------------------------------------------------------|
+| `orderNumber`      | string  | yes      | 1–50 characters: letters, digits, `-` and `_` only      |
+| `userId`           | string  | yes      | not empty, up to 100 characters                         |
+| `payableAmount`    | decimal | yes      | at least `0.01`, at most 2 decimal places               |
+| `paymentGatewayId` | string  | yes      | an ID from `GET /api/payment-gateways`, up to 50 characters |
+| `description`      | string  | no       | up to 500 characters                                    |
+
+The order number's character set keeps it safe in the receipt URL (`/api/orders/{orderNumber}/receipt`).
 
 Example:
 
