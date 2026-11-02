@@ -11,6 +11,6 @@ public interface IOrderService
     /// </summary>
     /// <param name="request">The order to process.</param>
     /// <param name="cancellationToken">Signals that the caller no longer needs the result.</param>
-    /// <returns>The outcome, with the transaction ID or decline reason from the gateway.</returns>
+    /// <returns>The outcome, with the receipt or the decline reason from the gateway.</returns>
     Task<OrderResult> ProcessOrderAsync(OrderRequest request, CancellationToken cancellationToken);
 }

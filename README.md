@@ -14,7 +14,7 @@ A billing application that accepts orders over a REST API and processes them thr
 Billing.slnx
 src/
   Billing.Api/
-    Controllers/OrdersController.cs   # POST /api/orders
+    Controllers/OrdersController.cs   # POST /api/orders, GET /api/orders/{orderNumber}/receipt
     Program.cs                        # DI registrations
   Billing.Contracts/                  # DTOs: what clients send and receive, grouped by feature
     Orders/OrderRequest.cs            # order payload + validation rules
@@ -23,6 +23,7 @@ src/
     Mappings/OrderMappings.cs         # request DTO → domain
     Mappings/ReceiptMappings.cs       # domain → response DTO
     Services/OrderService.cs          # order processing: resolve gateway, store, charge
+    Services/ReceiptService.cs        # receipt creation and lookup
     Models/OrderResult.cs             # outcome: Processed / Duplicate / UnknownGateway / Declined
   Billing.Infrastructure/             # implementations that talk to the outside world (storage, payment providers)
     Repositories/IOrderRepository.cs
@@ -96,7 +97,7 @@ curl -X POST http://localhost:5209/api/orders \
 
 Responses:
 
-- `200 OK`: the payment was approved; returns the receipt:
+- `201 Created`: the payment was approved; returns the receipt, with `Location: /api/orders/ORD-1/receipt`:
   ```json
   {
     "orderNumber": "ORD-1",
@@ -108,6 +109,15 @@ Responses:
   `transactionId` is the payment confirmation from the gateway.
 - `400 Bad Request`: validation errors, or an unknown `paymentGatewayId`, as [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc9457)
 - `402 Payment Required`: the gateway declined the payment; ProblemDetails with the title `Payment declined` and the reason in `detail`
-- `409 Conflict`: an order with the same `orderNumber` has already been processed
+- `409 Conflict`: an order with the same `orderNumber` has already been processed; if it was paid, fetch its receipt with the endpoint below
 
-You can also send the sample request in `src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).
+### `GET /api/orders/{orderNumber}/receipt`
+
+Returns the receipt of a paid order, for example when the client lost the response to its `POST`.
+
+Responses:
+
+- `200 OK`: the receipt, same shape as above
+- `404 Not Found`: no paid order has this order number (never submitted, declined, or still being charged), as ProblemDetails
+
+You can also send the sample requests in `src/Billing.Api/Billing.Api.http` from Visual Studio, Rider or VS Code (REST Client).

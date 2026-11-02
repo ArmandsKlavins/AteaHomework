@@ -15,4 +15,9 @@ public class InMemoryReceiptRepository : IReceiptRepository
     {
         await Task.FromResult(_receipts.TryAdd(receipt.OrderNumber, receipt));
     }
+
+    public async Task<Receipt?> GetAsync(string orderNumber, CancellationToken cancellationToken)
+    {
+        return await Task.FromResult(_receipts.GetValueOrDefault(orderNumber));
+    }
 }
