@@ -5,7 +5,7 @@ import { OrderRequest } from '../models/order-request';
 import { PaymentGateway } from '../models/payment-gateway';
 import { Receipt } from '../models/receipt';
 
-export const apiUrl = 'http://localhost:5209/api';
+const apiUrl = 'http://localhost:5209/api';
 
 @Injectable({ providedIn: 'root' })
 export class BillingApi {
