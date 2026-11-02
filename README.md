@@ -7,6 +7,7 @@ A billing application that accepts orders over a REST API and processes them thr
 ## Tech stack
 
 - Backend: ASP.NET Core Web API (.NET 10, controllers)
+- Tests: xUnit, Moq, `FakeTimeProvider`
 
 ## Project structure
 
@@ -43,6 +44,8 @@ src/
   Billing.Domain/                     # domain models used by logic and storage
     Order.cs
     Receipt.cs                        # linked to its order by OrderNumber
+tests/
+  Billing.UnitTests/                  # mirrors src: Logic/, Infrastructure/, Contracts/
 ```
 
 Classic N-layer, not Clean Architecture: Logic depends on Infrastructure, and Infrastructure holds the interfaces and their implementations. Project references: `Api → Logic → Infrastructure → Domain`. Api also references Contracts and Infrastructure (to register the repository and gateways in DI), and Logic references Contracts and Domain directly. Api passes request DTOs to the logic layer, which maps them to domain models.
@@ -77,6 +80,14 @@ dotnet run --project src/Billing.Api --launch-profile http
 The API listens on `http://localhost:5209`. In Development, the OpenAPI document is served at `http://localhost:5209/openapi/v1.json` and Swagger UI at `http://localhost:5209/swagger`.
 
 No configuration or environment variables are required.
+
+## Running the tests
+
+```bash
+dotnet test Billing.slnx
+```
+
+The unit tests cover order processing (every outcome, including that an unknown gateway doesn't use up the order number and a declined order can be retried), receipts, gateway lookup and the mock gateways, the repositories (including concurrent submits of one order number), and request validation.
 
 ## API
 

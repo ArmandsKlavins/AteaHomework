@@ -6,4 +6,7 @@
     <Project Path="src/Billing.Domain/Billing.Domain.csproj" />
     <Project Path="src/Billing.Logic/Billing.Logic.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Billing.UnitTests/Billing.UnitTests.csproj" />
+  </Folder>
 </Solution>

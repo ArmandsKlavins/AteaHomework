@@ -8,10 +8,12 @@ namespace Billing.Logic.Services;
 public class ReceiptService : IReceiptService
 {
     private readonly IReceiptRepository _receiptRepository;
+    private readonly TimeProvider _timeProvider;
 
-    public ReceiptService(IReceiptRepository receiptRepository)
+    public ReceiptService(IReceiptRepository receiptRepository, TimeProvider timeProvider)
     {
         _receiptRepository = receiptRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<ReceiptResponse> CreateReceiptAsync(Order order, string transactionId, CancellationToken cancellationToken)
@@ -20,7 +22,7 @@ public class ReceiptService : IReceiptService
         {
             OrderNumber = order.OrderNumber,
             Amount = order.PayableAmount,
-            PaidAt = DateTimeOffset.UtcNow,
+            PaidAt = _timeProvider.GetUtcNow(),
             TransactionId = transactionId
         };
 
